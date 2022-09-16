@@ -4542,6 +4542,7 @@ def test_offer(node_factory, bitcoind):
     assert 'recurrence: every 600 seconds paywindow -10 to +600 (pay proportional)\n' in output
 
 
+@unittest.skipIf(os.getenv('SUBDAEMON').startswith('hsmd:remote_hsmd'), "invoice from offer: Invalid bech32: invalid checksum")
 def test_deprecated_offer(node_factory, bitcoind):
     """Test that we allow old invreq name `payer_signature` with deprecated_apis"""
     l1, l2 = node_factory.line_graph(2, opts={'experimental-offers': None,
@@ -4590,6 +4591,7 @@ def test_fetchinvoice_3hop(node_factory, bitcoind):
     l1.rpc.call('fetchinvoice', {'offer': offer1['bolt12']})
 
 
+@unittest.skipIf(os.getenv('SUBDAEMON').startswith('hsmd:remote_hsmd'), "invoice from offer: Invalid bech32: invalid checksum")
 def test_fetchinvoice(node_factory, bitcoind):
     # We remove the conversion plugin on l3, causing it to get upset.
     l1, l2, l3 = node_factory.line_graph(3, wait_for_announce=True,
@@ -4802,6 +4804,7 @@ def test_fetchinvoice(node_factory, bitcoind):
                                      'recurrence_label': 'test paywindow'})
 
 
+@unittest.skipIf(os.getenv('SUBDAEMON').startswith('hsmd:remote_hsmd'), "invoice from offer: Invalid bech32: invalid checksum")
 @pytest.mark.developer("Needs dev-allow-localhost for autoconnect, dev-force-features to avoid routing onionmsgs")
 def test_fetchinvoice_autoconnect(node_factory, bitcoind):
     """We should autoconnect if we need to, to route."""
@@ -4966,15 +4969,18 @@ def do_test_sendinvoice(node_factory, bitcoind, disable):
     assert out['amount_received_msat'] == Millisatoshi(10000000)
 
 
+@unittest.skipIf(os.getenv('SUBDAEMON').startswith('hsmd:remote_hsmd'), "invoice from offer: Invalid bech32: invalid checksum")
 def test_sendinvoice(node_factory, bitcoind):
     do_test_sendinvoice(node_factory, bitcoind, None)
 
 
+@unittest.skipIf(os.getenv('SUBDAEMON').startswith('hsmd:remote_hsmd'), "invoice from offer: Invalid bech32: invalid checksum")
 @pytest.mark.developer("needs to --dev-no-obsolete-onion")
 def test_sendinvoice_modern(node_factory, bitcoind):
     do_test_sendinvoice(node_factory, bitcoind, 'dev-no-obsolete-onion')
 
 
+@unittest.skipIf(os.getenv('SUBDAEMON').startswith('hsmd:remote_hsmd'), "invoice from offer: Invalid bech32: invalid checksum")
 @pytest.mark.developer("needs to --dev-no-modern-onion")
 def test_sendinvoice_obsolete(node_factory, bitcoind):
     do_test_sendinvoice(node_factory, bitcoind, 'dev-no-modern-onion')

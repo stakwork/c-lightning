@@ -380,7 +380,6 @@ include devtools/Makefile
 include tools/Makefile
 include plugins/Makefile
 include tests/plugins/Makefile
-include contrib/remote_hsmd/Makefile
 
 ifneq ($(FUZZING),0)
 	include tests/fuzz/Makefile
@@ -428,8 +427,7 @@ PKGLIBEXEC_PROGRAMS = \
 	       lightningd/lightning_hsmd \
 	       lightningd/lightning_onchaind \
 	       lightningd/lightning_openingd \
-	       lightningd/lightning_websocketd \
-	       lightningd/remote_hsmd
+	       lightningd/lightning_websocketd 
 
 # Don't delete these intermediaries.
 .PRECIOUS: $(ALL_GEN_HEADERS) $(ALL_GEN_SOURCES)

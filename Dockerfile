@@ -8,8 +8,8 @@
 FROM debian:bullseye-slim as downloader
 
 RUN set -ex \
-	&& apt-get update \
-	&& apt-get install -qq --no-install-recommends ca-certificates dirmngr wget
+    && apt-get update \
+    && apt-get install -qq --no-install-recommends ca-certificates dirmngr wget
 
 WORKDIR /opt
 
@@ -50,47 +50,47 @@ FROM debian:bullseye-slim as builder
 ENV LIGHTNINGD_VERSION=master
 RUN apt-get update -qq && \
     apt-get install -qq -y --no-install-recommends \
-        autoconf \
-        automake \
-        build-essential \
-        ca-certificates \
-        curl \
-        dirmngr \
-        gettext \
-        git \
-        gnupg \
-        libpq-dev \
-        libtool \
-        libffi-dev \
-        python3 \
-        python3-dev \
-        python3-mako \
-        python3-pip \
-        python3-venv \
-        python3-setuptools \
-        wget
+    autoconf \
+    automake \
+    build-essential \
+    ca-certificates \
+    curl \
+    dirmngr \
+    gettext \
+    git \
+    gnupg \
+    libpq-dev \
+    libtool \
+    libffi-dev \
+    python3 \
+    python3-dev \
+    python3-mako \
+    python3-pip \
+    python3-venv \
+    python3-setuptools \
+    wget
 
 RUN wget -q https://zlib.net/zlib-1.2.12.tar.gz \
-&& tar xvf zlib-1.2.12.tar.gz \
-&& cd zlib-1.2.12 \
-&& ./configure \
-&& make \
-&& make install && cd .. && rm zlib-1.2.12.tar.gz && rm -rf zlib-1.2.12
+    && tar xvf zlib-1.2.12.tar.gz \
+    && cd zlib-1.2.12 \
+    && ./configure \
+    && make \
+    && make install && cd .. && rm zlib-1.2.12.tar.gz && rm -rf zlib-1.2.12
 
 RUN apt-get install -y --no-install-recommends unzip tclsh \
-&& wget -q https://www.sqlite.org/2019/sqlite-src-3290000.zip \
-&& unzip sqlite-src-3290000.zip \
-&& cd sqlite-src-3290000 \
-&& ./configure --enable-static --disable-readline --disable-threadsafe --disable-load-extension \
-&& make \
-&& make install && cd .. && rm sqlite-src-3290000.zip && rm -rf sqlite-src-3290000
+    && wget -q https://www.sqlite.org/2019/sqlite-src-3290000.zip \
+    && unzip sqlite-src-3290000.zip \
+    && cd sqlite-src-3290000 \
+    && ./configure --enable-static --disable-readline --disable-threadsafe --disable-load-extension \
+    && make \
+    && make install && cd .. && rm sqlite-src-3290000.zip && rm -rf sqlite-src-3290000
 
 RUN wget -q https://gmplib.org/download/gmp/gmp-6.1.2.tar.xz \
-&& tar xvf gmp-6.1.2.tar.xz \
-&& cd gmp-6.1.2 \
-&& ./configure --disable-assembly \
-&& make \
-&& make install && cd .. && rm gmp-6.1.2.tar.xz && rm -rf gmp-6.1.2
+    && tar xvf gmp-6.1.2.tar.xz \
+    && cd gmp-6.1.2 \
+    && ./configure --disable-assembly \
+    && make \
+    && make install && cd .. && rm gmp-6.1.2.tar.xz && rm -rf gmp-6.1.2
 
 ENV RUST_PROFILE=release
 ENV PATH=$PATH:/root/.cargo/bin/
@@ -108,6 +108,8 @@ RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/inst
     && pip3 install -U wheel \
     && /root/.local/bin/poetry config virtualenvs.create false \
     && /root/.local/bin/poetry install
+RUN pip install Mako
+RUN pip install mistune==0.8.4 mrkd
 
 RUN ./configure --prefix=/tmp/lightning_install --enable-static && make -j3 DEVELOPER=${DEVELOPER} && make install
 

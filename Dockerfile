@@ -113,6 +113,12 @@ RUN pip install mistune==0.8.4 mrkd
 
 RUN ./configure --prefix=/tmp/lightning_install --enable-static && make -j3 DEVELOPER=${DEVELOPER} && make install
 
+RUN git clone https://github.com/stakwork/sphinx-key
+
+RUN rustup toolchain install nightly --component rustfmt --allow-downgrade
+RUN rustup default nightly
+RUN cargo build --manifest-path=sphinx-key/broker/Cargo.toml
+
 FROM debian:bullseye-slim as final
 
 COPY --from=downloader /opt/tini /usr/bin/tini
@@ -131,6 +137,7 @@ COPY --from=builder /tmp/lightning_install/ /usr/local/
 COPY --from=downloader /opt/bitcoin/bin /usr/bin
 COPY --from=downloader /opt/litecoin/bin /usr/bin
 COPY tools/docker-entrypoint.sh entrypoint.sh
+COPY --from=builder /sphinx-key/broker/target/release/sphinx-key-broker /usr/local/libexec/c-lightning/sphinx-key-broker
 
 EXPOSE 9735 9835
 ENTRYPOINT  [ "/usr/bin/tini", "-g", "--", "./entrypoint.sh" ]

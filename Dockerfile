@@ -1,3 +1,5 @@
+# docker build --no-cache -t cln-sphinx .
+
 # This dockerfile is meant to compile a core-lightning x64 image
 # It is using multi stage build:
 # * downloader: Download litecoin/bitcoin and qemu binaries needed for core-lightning
@@ -8,8 +10,8 @@
 FROM debian:bullseye-slim as downloader
 
 RUN set -ex \
-	&& apt-get update \
-	&& apt-get install -qq --no-install-recommends ca-certificates dirmngr wget
+    && apt-get update \
+    && apt-get install -qq --no-install-recommends ca-certificates dirmngr wget
 
 WORKDIR /opt
 
@@ -32,7 +34,9 @@ RUN mkdir /opt/bitcoin && cd /opt/bitcoin \
     && rm $BITCOIN_TARBALL
 
 ENV LITECOIN_VERSION 0.16.3
+ENV LITECOIN_PGP_KEY FE3348877809386C
 ENV LITECOIN_URL https://download.litecoin.org/litecoin-${LITECOIN_VERSION}/linux/litecoin-${LITECOIN_VERSION}-x86_64-linux-gnu.tar.gz
+ENV LITECOIN_ASC_URL https://download.litecoin.org/litecoin-${LITECOIN_VERSION}/linux/litecoin-${LITECOIN_VERSION}-linux-signatures.asc
 ENV LITECOIN_SHA256 686d99d1746528648c2c54a1363d046436fd172beadaceea80bdc93043805994
 
 # install litecoin binaries
@@ -48,28 +52,31 @@ FROM debian:bullseye-slim as builder
 ENV LIGHTNINGD_VERSION=master
 RUN apt-get update -qq && \
     apt-get install -qq -y --no-install-recommends \
-        autoconf \
-        automake \
-        build-essential \
-        ca-certificates \
-        curl \
-        dirmngr \
-        gettext \
-        git \
-        gnupg \
-        libpq-dev \
-        libtool \
-        libffi-dev \
-        protobuf-compiler \
-        python3 \
-        python3-dev \
-        python3-mako \
-        python3-pip \
-        python3-venv \
-        python3-setuptools \
-        wget
+    autoconf \
+    automake \
+    build-essential \
+    ca-certificates \
+    curl \
+    dirmngr \
+    gettext \
+    git \
+    gnupg \
+    libpq-dev \
+    libtool \
+    libffi-dev \
+    python3 \
+    python3-dev \
+    python3-mako \
+    python3-pip \
+    python3-venv \
+    python3-setuptools \
+    wget \
+    pkg-config \
+    libssl-dev \
+    libclang-dev \
+    protobuf-compiler 
 
-RUN wget -q https://zlib.net/fossils/zlib-1.2.13.tar.gz \
+RUN wget -q https://zlib.net/zlib-1.2.13.tar.gz \
     && tar xvf zlib-1.2.13.tar.gz \
     && cd zlib-1.2.13 \
     && ./configure \
@@ -114,17 +121,26 @@ RUN ./configure --prefix=/tmp/lightning_install --enable-static && \
     make DEVELOPER=${DEVELOPER} && \
     /root/.local/bin/poetry run make install
 
+
+RUN git clone -b intercept-all-scids --single-branch https://github.com/stakwork/fedimint.git /tmp/fedimint
+
+RUN cargo build --release --manifest-path=/tmp/fedimint/Cargo.toml --bin gateway-cln-extension
+
+RUN git clone https://github.com/stakwork/sphinx-key /tmp/sphinx-key
+
+RUN cargo build --release --manifest-path=/tmp/sphinx-key/broker/Cargo.toml
+
 FROM debian:bullseye-slim as final
 
 COPY --from=downloader /opt/tini /usr/bin/tini
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      socat \
-      inotify-tools \
-      python3 \
-      python3-pip \
-      libpq5 && \
+    socat \
+    inotify-tools \
+    python3 \
+    python3-pip \
+    libpq5 && \
     rm -rf /var/lib/apt/lists/*
 
 ENV LIGHTNINGD_DATA=/root/.lightning
@@ -140,5 +156,9 @@ COPY --from=downloader /opt/bitcoin/bin /usr/bin
 COPY --from=downloader /opt/litecoin/bin /usr/bin
 COPY tools/docker-entrypoint.sh entrypoint.sh
 
-EXPOSE 9735 9835
+COPY --from=builder /tmp/fedimint/target/release/gateway-cln-extension /usr/local/libexec/c-lightning/plugins/gateway-cln-extension
+
+COPY --from=builder /tmp/sphinx-key/broker/target/release/sphinx-key-broker /usr/local/libexec/c-lightning/sphinx-key-broker
+
+EXPOSE 9735 9835 1883 8000
 ENTRYPOINT  [ "/usr/bin/tini", "-g", "--", "./entrypoint.sh" ]

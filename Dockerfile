@@ -1,4 +1,6 @@
 # docker build --no-cache -t cln-sphinx .
+# docker tag cln-sphinx sphinxlightning/cln-sphinx:0.1.1
+# docker push sphinxlightning/cln-sphinx:0.1.1
 
 # This dockerfile is meant to compile a core-lightning x64 image
 # It is using multi stage build:

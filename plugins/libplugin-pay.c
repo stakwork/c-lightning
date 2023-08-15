@@ -2517,8 +2517,9 @@ static struct route_info **filter_routehints(struct gossmap *map,
 			tal_arr_remove(&hints, i);
 			i--;
 		}
-	}
 */
+	}
+
 	if (!streq(mods, ""))
 		d->routehint_modifications = tal_steal(d, mods);
 

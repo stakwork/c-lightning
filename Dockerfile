@@ -1,6 +1,6 @@
 # docker build --no-cache -t cln-sphinx .
-# docker tag cln-sphinx sphinxlightning/cln-sphinx:0.1.1
-# docker push sphinxlightning/cln-sphinx:0.1.1
+# docker tag cln-sphinx sphinxlightning/cln-sphinx:0.2.3
+# docker push sphinxlightning/cln-sphinx:0.2.3
 
 # This dockerfile is meant to compile a core-lightning x64 image
 # It is using multi stage build:
@@ -124,7 +124,7 @@ RUN ./configure --prefix=/tmp/lightning_install --enable-static && \
     /root/.local/bin/poetry run make install
 
 
-RUN git clone -b intercept-all-scids --single-branch https://github.com/stakwork/fedimint.git /tmp/fedimint
+RUN git clone -b intercept-onion --single-branch https://github.com/stakwork/fedimint.git /tmp/fedimint
 
 RUN cargo build --release --manifest-path=/tmp/fedimint/Cargo.toml --bin gateway-cln-extension
 

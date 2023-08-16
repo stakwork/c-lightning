@@ -104,7 +104,9 @@ RUN wget -q https://gmplib.org/download/gmp/gmp-6.1.2.tar.xz \
 ENV RUST_PROFILE=release
 ENV PATH=$PATH:/root/.cargo/bin/
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-RUN rustup toolchain install stable --component rustfmt --allow-downgrade
+# RUN rustup toolchain install stable --component rustfmt --allow-downgrade
+RUN rustup toolchain install 1.68.2
+RUN rustup default 1.68.2
 
 WORKDIR /opt/lightningd
 COPY . /tmp/lightning

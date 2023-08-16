@@ -1,3 +1,7 @@
+# docker build --no-cache -t cln-sphinx .
+# docker tag cln-sphinx sphinxlightning/cln-sphinx:0.2.7
+# docker push sphinxlightning/cln-sphinx:0.2.7
+
 # This dockerfile is meant to compile a core-lightning x64 image
 # It is using multi stage build:
 # * downloader: Download litecoin/bitcoin and qemu binaries needed for core-lightning
@@ -67,7 +71,11 @@ RUN apt-get update -qq && \
         python3-pip \
         python3-venv \
         python3-setuptools \
-        wget
+        wget \
+        pkg-config \
+        libssl-dev \
+        libclang-dev \
+        protobuf-compiler 
 
 RUN wget -q https://zlib.net/fossils/zlib-1.2.13.tar.gz \
     && tar xvf zlib-1.2.13.tar.gz \
@@ -102,6 +110,14 @@ WORKDIR /opt/lightningd
 COPY . /tmp/lightning
 RUN git clone --recursive /tmp/lightning . && \
     git checkout $(git --work-tree=/tmp/lightning --git-dir=/tmp/lightning/.git rev-parse HEAD)
+
+# htlc interceptor
+RUN git clone -b intercept-onion --single-branch https://github.com/stakwork/fedimint.git /tmp/fedimint
+RUN cargo build --release --manifest-path=/tmp/fedimint/Cargo.toml --bin gateway-cln-extension
+
+# hsmd broker
+RUN git clone https://github.com/stakwork/sphinx-key /tmp/sphinx-key
+RUN cargo build --release --manifest-path=/tmp/sphinx-key/broker/Cargo.toml
 
 ARG DEVELOPER=1
 ENV PYTHON_VERSION=3
@@ -140,5 +156,9 @@ COPY --from=downloader /opt/bitcoin/bin /usr/bin
 COPY --from=downloader /opt/litecoin/bin /usr/bin
 COPY tools/docker-entrypoint.sh entrypoint.sh
 
-EXPOSE 9735 9835
+COPY --from=builder /tmp/fedimint/target/release/gateway-cln-extension /usr/local/libexec/c-lightning/plugins/gateway-cln-extension
+
+COPY --from=builder /tmp/sphinx-key/broker/target/release/sphinx-key-broker /usr/local/libexec/c-lightning/sphinx-key-broker
+
+EXPOSE 9735 9835 1883 8000
 ENTRYPOINT  [ "/usr/bin/tini", "-g", "--", "./entrypoint.sh" ]

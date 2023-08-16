@@ -1,6 +1,6 @@
 # docker build --no-cache -t cln-sphinx .
-# docker tag cln-sphinx sphinxlightning/cln-sphinx:0.2.4
-# docker push sphinxlightning/cln-sphinx:0.2.4
+# docker tag cln-sphinx sphinxlightning/cln-sphinx:0.2.5
+# docker push sphinxlightning/cln-sphinx:0.2.5
 
 # This dockerfile is meant to compile a core-lightning x64 image
 # It is using multi stage build:
@@ -105,12 +105,24 @@ RUN wget -q https://gmplib.org/download/gmp/gmp-6.1.2.tar.xz \
 ENV RUST_PROFILE=release
 ENV PATH=$PATH:/root/.cargo/bin/
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-RUN rustup toolchain install stable --component rustfmt --allow-downgrade
+# https://github.com/rust-bitcoin/rust-miniscript/issues/549
+# upgrade back to "stable" after miniscript is updated to 9.0 in fedimint
+# RUN rustup toolchain install stable --component rustfmt --allow-downgrade
+RUN rustup toolchain install 1.68.2
+RUN rustup default 1.68.2
 
 WORKDIR /opt/lightningd
 COPY . /tmp/lightning
 RUN git clone --recursive /tmp/lightning . && \
     git checkout $(git --work-tree=/tmp/lightning --git-dir=/tmp/lightning/.git rev-parse HEAD)
+
+# htlc interceptor
+RUN git clone -b intercept-onion --single-branch https://github.com/stakwork/fedimint.git /tmp/fedimint
+RUN cargo build --release --manifest-path=/tmp/fedimint/Cargo.toml --bin gateway-cln-extension
+
+# hsmd broker
+RUN git clone https://github.com/stakwork/sphinx-key /tmp/sphinx-key
+RUN cargo build --release --manifest-path=/tmp/sphinx-key/broker/Cargo.toml
 
 ARG DEVELOPER=1
 ENV PYTHON_VERSION=3
@@ -122,15 +134,6 @@ RUN curl -sSL https://install.python-poetry.org | python3 - \
 RUN ./configure --prefix=/tmp/lightning_install --enable-static && \
     make DEVELOPER=${DEVELOPER} && \
     /root/.local/bin/poetry run make install
-
-
-RUN git clone -b intercept-onion --single-branch https://github.com/stakwork/fedimint.git /tmp/fedimint
-
-RUN cargo build --release --manifest-path=/tmp/fedimint/Cargo.toml --bin gateway-cln-extension
-
-RUN git clone https://github.com/stakwork/sphinx-key /tmp/sphinx-key
-
-RUN cargo build --release --manifest-path=/tmp/sphinx-key/broker/Cargo.toml
 
 FROM debian:bullseye-slim as final
 
